@@ -30,6 +30,7 @@ class ClientUDP
 {
 
     //TODO: [Deserialize Setting.json]
+    private static int messageIdCounter = 1;
     static string configFile = @"../Setting.json";
     static string configContent = File.ReadAllText(configFile);
     static Setting? setting = JsonSerializer.Deserialize<Setting>(configContent);
@@ -37,13 +38,69 @@ class ClientUDP
 
     public static void start()
     {
+        if (setting == null)
+        {
+            Console.WriteLine("Failed to load settins");
+        }
 
         //TODO: [Create endpoints and socket]
+        IPAddress serverIP = IPAddress.Parse(setting.ServerIPAddress);
+        IPEndPoint serverEndPoint = new IPEndPoint(serverIP, setting.ServerPortNumber);
+
+        IPAddress clientIP = IPAddress.Parse(setting.ClientIPAddress);
+        IPEndPoint clientEndPoint = new IPEndPoint(clientIP, setting.ClientPortNumber);
+
+        Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        socket.Bind(clientEndPoint);
 
 
         //TODO: [Create and send HELLO]
 
-        //TODO: [Receive and print Welcome from server]
+        try
+        {
+            Message DNSmessage = new Message
+            {
+                MsgId = messageIdCounter++,
+                MsgType = MessageType.Hello,
+                Content = "Hello from client"
+            };
+
+            SendMessage(socket, serverEndPoint, DNSmessage);
+
+            //TODO: [Receive and print Welcome from server]
+
+            Message Reply = ReceiveMessage(socket, ref serverEndPoint);
+
+            Console.WriteLine($"Recieved: {Reply.Content}");
+        }
+
+        finally
+        {
+            socket.Close();
+        }
+
+
+
+    }
+
+    private static void SendMessage (Socket socket, IPEndPoint endPoint, Message message)
+    {
+        string json = JsonSerializer.Serialize(message);
+        byte[] buffer = Encoding.ASCII.GetBytes(json);
+        socket.SendTo(buffer, endPoint);
+    }
+
+    private static Message ReceiveMessage(Socket socket, ref IPEndPoint endPoint)
+    {
+        byte[] buffer = new byte[1024];
+        EndPoint tempEndPoint = new IPEndPoint(IPAddress.Any, 0);
+        int bytesRead = socket.ReceiveFrom(buffer, ref tempEndPoint);
+        endPoint = (IPEndPoint)tempEndPoint;
+
+        string receivedJson = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+        return JsonSerializer.Deserialize<Message>(receivedJson)!;
+    }
+}
 
         // TODO: [Create and send DNSLookup Message]
 
@@ -57,10 +114,3 @@ class ClientUDP
         // repeat the process until all DNSLoopkups (correct and incorrect onces) are sent to server and the replies with DNSLookupReply
 
         //TODO: [Receive and print End from server]
-
-
-
-
-
-    }
-}
