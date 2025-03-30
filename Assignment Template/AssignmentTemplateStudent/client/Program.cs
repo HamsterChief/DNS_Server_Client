@@ -67,9 +67,22 @@ class ClientUDP
 
             SendMessage(socket, serverEndPoint, DNSmessage);
 
-            //TODO: [Receive and print Welcome from server]
+            // TODO: [Receive and print Welcome from server]
 
             Message Reply = ReceiveMessage(socket, ref serverEndPoint);
+
+            Console.WriteLine($"Recieved: {Reply.Content}");
+            // TODO: [Create and send DNSLookup Message]
+            Message DNSLookUp = new Message
+            {
+                MsgId = messageIdCounter++,
+                MsgType = MessageType.DNSLookup,
+                Content = "www.outlook.com"
+            };
+
+            SendMessage(socket, serverEndPoint, DNSLookUp);
+            // TODO: [Receive and print DNSLookupReply from server]
+            Reply = ReceiveMessage(socket, ref serverEndPoint);
 
             Console.WriteLine($"Recieved: {Reply.Content}");
         }
@@ -102,10 +115,10 @@ class ClientUDP
     }
 }
 
-        // TODO: [Create and send DNSLookup Message]
+        
 
 
-        //TODO: [Receive and print DNSLookupReply from server]
+
 
 
         //TODO: [Send Acknowledgment to Server]

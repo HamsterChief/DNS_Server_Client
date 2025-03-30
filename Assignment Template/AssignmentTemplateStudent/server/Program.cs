@@ -114,7 +114,55 @@ class ServerUDP
                         };
                         SendMessage(socket, clientEndPoint, Welcome);
                         break;
-                    
+
+                    case MessageType.DNSLookup:
+                        {
+                            string domainName = recieved.Content?.ToString() ?? string.Empty;
+                            if (!string.IsNullOrWhiteSpace(domainName))
+                            {
+                                // Find matching DNS records
+                                var matchedRecords = dNSRecords?.Where(r => r.Name.Equals(domainName, StringComparison.OrdinalIgnoreCase)).ToArray();
+
+                                if (matchedRecords != null && matchedRecords.Length > 0)
+                                {
+                                    // Create DNS lookup reply message
+                                    Message dnsReply = new Message
+                                    {
+                                        MsgId = messageIdCounter++,
+                                        MsgType = MessageType.DNSLookupReply,
+                                        Content = matchedRecords
+                                    };
+                                    SendMessage(socket, clientEndPoint, dnsReply);
+                                    Console.WriteLine($"Sent DNSLookupReply to {clientEndPoint} for {domainName}");
+                                }
+                                else
+                                {
+                                    // Send an error message if no record found
+                                    Message errorMsg = new Message
+                                    {
+                                        MsgId = messageIdCounter++,
+                                        MsgType = MessageType.Error,
+                                        Content = $"No DNS record found for {domainName}"
+                                    };
+                                    SendMessage(socket, clientEndPoint, errorMsg);
+                                    Console.WriteLine($"No DNS record found for {domainName}");
+                                }
+                            }
+                            else
+                            {
+                                // Send an error message for invalid request format
+                                Message errorMsg = new Message
+                                {
+                                    MsgId = messageIdCounter++,
+                                    MsgType = MessageType.Error,
+                                    Content = "Invalid DNS lookup request format"
+                                };
+                                SendMessage(socket, clientEndPoint, errorMsg);
+                                Console.WriteLine("Invalid DNS lookup request format");
+                            }
+                            break;
+                        }
+
                     // Unknown msg
                     default:
                         Console.WriteLine($"Unknown message: {recieved.MsgType}");
