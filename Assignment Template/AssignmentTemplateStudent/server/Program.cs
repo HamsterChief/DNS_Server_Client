@@ -101,8 +101,10 @@ class ServerUDP
                 Message recieved = ReceiveMessage(socket, ref clientEndPoint);
                 Console.WriteLine($"Recieved {recieved.MsgType} from {clientEndPoint}");
 
+                // switch to give a diffrent response for each message type
                 switch (recieved.MsgType)
                 {
+                    // Welcome msg
                     case MessageType.Hello:
                         Message Welcome = new Message
                         {
@@ -112,6 +114,8 @@ class ServerUDP
                         };
                         SendMessage(socket, clientEndPoint, Welcome);
                         break;
+                    
+                    // Unknown msg
                     default:
                         Console.WriteLine($"Unknown message: {recieved.MsgType}");
                         break;
@@ -119,6 +123,7 @@ class ServerUDP
 
             }
 
+            // ending communications
             Message End = new Message
             {
                 MsgId = messageIdCounter++,
