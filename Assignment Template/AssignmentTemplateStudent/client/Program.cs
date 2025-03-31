@@ -35,68 +35,84 @@ class ClientUDP
     static string configContent = File.ReadAllText(configFile);
     static Setting? setting = JsonSerializer.Deserialize<Setting>(configContent);
 
+    //DNS records
+    public static string[] DomainNames = new string[]
+{
+    "www.outlook.com",
+    "www.test.com",
+    "www.sample.com",
+    "www.mywebsite.com",
+    "www.customdomain.com",
+    "example.com",
+    "example.com",
+    "mail.example.com"
+};
+
+    // Load DNS records
 
     public static void start()
     {
-        if (setting == null)
-        {
-            Console.WriteLine("Failed to load settins");
-        }
-
-        //TODO: [Create endpoints and socket]
         IPAddress serverIP = IPAddress.Parse(setting.ServerIPAddress);
         IPEndPoint serverEndPoint = new IPEndPoint(serverIP, setting.ServerPortNumber);
 
         IPAddress clientIP = IPAddress.Parse(setting.ClientIPAddress);
         IPEndPoint clientEndPoint = new IPEndPoint(clientIP, setting.ClientPortNumber);
 
-        Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        using Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         socket.Bind(clientEndPoint);
 
 
-        //TODO: [Create and send HELLO]
-
         try
         {
-            Message DNSmessage = new Message
+            Message helloMsg = new Message
             {
                 MsgId = messageIdCounter++,
                 MsgType = MessageType.Hello,
                 Content = "Hello from client"
             };
+            SendMessage(socket, serverEndPoint, helloMsg);
 
-            SendMessage(socket, serverEndPoint, DNSmessage);
+            Message reply = ReceiveMessage(socket, ref serverEndPoint);
+            Console.WriteLine($"Received: {reply.Content}");
 
-            // TODO: [Receive and print Welcome from server]
+            foreach (string name in DomainNames)
+            {
+                Message lookupMsg = new Message
+                {
+                    MsgId = messageIdCounter++,
+                    MsgType = MessageType.DNSLookup,
+                    Content = name
+                };
+                SendMessage(socket, serverEndPoint, lookupMsg);
 
-            Message Reply = ReceiveMessage(socket, ref serverEndPoint);
+                Message response = ReceiveMessage(socket, ref serverEndPoint);
+                Console.WriteLine($"Received: {response.Content}");
+            }
 
-            Console.WriteLine($"Recieved: {Reply.Content}");
-            // TODO: [Create and send DNSLookup Message]
-            Message DNSLookUp = new Message
+            Message ClientendAck = new Message
             {
                 MsgId = messageIdCounter++,
-                MsgType = MessageType.DNSLookup,
-                Content = "www.outlook.com"
+                MsgType = MessageType.Ack,
+                Content = "Records recieved ending communications"
             };
 
-            SendMessage(socket, serverEndPoint, DNSLookUp);
-            // TODO: [Receive and print DNSLookupReply from server]
-            Reply = ReceiveMessage(socket, ref serverEndPoint);
+            SendMessage(socket, serverEndPoint, ClientendAck);
 
-            Console.WriteLine($"Recieved: {Reply.Content}");
+            // Wait for server to signal end of communication
+            Message endMsg = ReceiveMessage(socket, ref serverEndPoint);
+            if (endMsg.MsgType == MessageType.End)
+            {
+                Console.WriteLine("Server has ended communication. Closing client.");
+            }
         }
-
         finally
         {
             socket.Close();
+            Console.WriteLine("Client shut down.");
         }
-
-
-
     }
 
-    private static void SendMessage (Socket socket, IPEndPoint endPoint, Message message)
+    private static void SendMessage(Socket socket, IPEndPoint endPoint, Message message)
     {
         string json = JsonSerializer.Serialize(message);
         byte[] buffer = Encoding.ASCII.GetBytes(json);
@@ -115,15 +131,12 @@ class ClientUDP
     }
 }
 
-        
 
 
 
 
 
-        //TODO: [Send Acknowledgment to Server]
 
-        // TODO: [Send next DNSLookup to server]
-        // repeat the process until all DNSLoopkups (correct and incorrect onces) are sent to server and the replies with DNSLookupReply
+//TODO: [Send Acknowledgment to Server]
 
-        //TODO: [Receive and print End from server]
+//TODO: [Receive and print End from server]

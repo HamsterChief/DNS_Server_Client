@@ -39,7 +39,7 @@ class ServerUDP
     // TODO: [Read the JSON file and return the list of DNSRecords]
 
     //DNS records
-    private static DNSRecord[]? dNSRecords;
+    public static DNSRecord[]? dNSRecords;
 
     // Load DNS records
     private static void LoadDNSRecords()
@@ -121,7 +121,7 @@ class ServerUDP
                             if (!string.IsNullOrWhiteSpace(domainName))
                             {
                                 // Find matching DNS records
-                                var matchedRecords = dNSRecords?.Where(r => r.Name.Equals(domainName, StringComparison.OrdinalIgnoreCase)).ToArray();
+                                var matchedRecords = dNSRecords?.Where(r => r.Name.Equals(domainName, StringComparison.OrdinalIgnoreCase) && r.Type == "A").ToArray();
 
                                 if (matchedRecords != null && matchedRecords.Length > 0)
                                 {
@@ -162,6 +162,16 @@ class ServerUDP
                             }
                             break;
                         }
+                    case MessageType.Ack:
+                        // ending communications
+                        Message End = new Message
+                        {
+                            MsgId = messageIdCounter++,
+                            MsgType = MessageType.End,
+                            Content = "Server ending communication"
+                        };
+                        SendMessage(socket, clientEndPoint, End);
+                        break;
 
                     // Unknown msg
                     default:
@@ -171,14 +181,7 @@ class ServerUDP
 
             }
 
-            // ending communications
-            Message End = new Message
-            {
-                MsgId = messageIdCounter++,
-                MsgType = MessageType.End,
-                Content = "Server ending communication"
-            };
-            SendMessage(socket, clientEndPoint, End);
+
 
 
         }
