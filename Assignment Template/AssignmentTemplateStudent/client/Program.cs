@@ -43,7 +43,8 @@ class ClientUDP
     "www.sample.com",
     "www.mywebsite.com",
     "www.customdomain.com",
-    "example.com",
+    "example", // Faulty domain name
+    "Error", // Faulty domain name
     "example.com",
     "mail.example.com"
 };
@@ -84,15 +85,39 @@ class ClientUDP
                     Content = name
                 };
                 SendMessage(socket, serverEndPoint, lookupMsg);
+                Console.WriteLine($"Sent: {lookupMsg.Content}");
 
                 Message response = ReceiveMessage(socket, ref serverEndPoint);
                 Console.WriteLine($"Received: {response.Content}");
+
+                if (response.MsgType == MessageType.DNSLookupReply)
+                {
+                    Message Ack = new Message
+                    {
+                        MsgId = response.MsgId,
+                        MsgType = MessageType.Ack,
+                        Content = "Recieved records successfully"
+                    };
+                    SendMessage(socket, serverEndPoint, Ack);
+                }
+                if (response.MsgType == MessageType.Error)
+                {
+                    Message Ack = new Message
+                    {
+                        MsgId = response.MsgId,
+                        MsgType = MessageType.Ack,
+                        Content = "Recieved records unsuccessfully"
+                    };
+                    SendMessage(socket, serverEndPoint, Ack);
+                }
+
+
             }
 
             Message ClientendAck = new Message
             {
                 MsgId = messageIdCounter++,
-                MsgType = MessageType.Ack,
+                MsgType = MessageType.End,
                 Content = "Records recieved ending communications"
             };
 
