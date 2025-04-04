@@ -46,7 +46,8 @@ class ClientUDP
     "example", // Faulty domain name
     "Error", // Faulty domain name
     "example.com",
-    "mail.example.com"
+    "mail.example.com",
+     "{ 'Type': 'A', 'Value': 'www.example.com' }"
 };
 
     // Load DNS records
@@ -96,7 +97,7 @@ class ClientUDP
                     {
                         MsgId = response.MsgId,
                         MsgType = MessageType.Ack,
-                        Content = "Recieved records successfully"
+                        Content = response.MsgId
                     };
                     SendMessage(socket, serverEndPoint, Ack);
                 }
@@ -118,7 +119,7 @@ class ClientUDP
             {
                 MsgId = messageIdCounter++,
                 MsgType = MessageType.End,
-                Content = "Records recieved ending communications"
+                Content = "End of DNSLookup"
             };
 
             SendMessage(socket, serverEndPoint, ClientendAck);

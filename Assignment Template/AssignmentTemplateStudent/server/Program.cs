@@ -109,7 +109,7 @@ class ServerUDP
                         {
                             MsgId = messageIdCounter++,
                             MsgType = MessageType.Welcome,
-                            Content = $"Welcome to DNS Server {serverEndPoint}"
+                            Content = $"Welcome from server"
                         };
                         SendMessage(socket, clientEndPoint, Welcome);
                         break;
@@ -142,7 +142,7 @@ class ServerUDP
                                     {
                                         MsgId = recieved.MsgId,
                                         MsgType = MessageType.Error,
-                                        Content = $"No record found for {domainName}"
+                                        Content = "Domain not found"
                                     };
                                     SendMessage(socket, clientEndPoint, errorMsg);
                                     Console.WriteLine($"{recieved.MsgId}: No record found for {domainName}");
@@ -158,7 +158,7 @@ class ServerUDP
                                 {
                                     MsgId = recieved.MsgId,
                                     MsgType = MessageType.Error,
-                                    Content = $"Invalid DNS lookup request format"
+                                    Content = "Domain not found"
                                 };
                                 SendMessage(socket, clientEndPoint, errorMsg);
                                 Console.WriteLine($"{recieved.MsgId}: Invalid DNS lookup request format");
@@ -172,7 +172,7 @@ class ServerUDP
                         {
                             MsgId = messageIdCounter++,
                             MsgType = MessageType.End,
-                            Content = "Server ending communication"
+                            Content = "End of DNSLooku"
                         };
                         SendMessage(socket, clientEndPoint, End);
                         Console.WriteLine($"{messageIdCounter}:Ending communication with {clientEndPoint}");
