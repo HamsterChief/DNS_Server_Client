@@ -36,19 +36,19 @@ class ClientUDP
     static Setting? setting = JsonSerializer.Deserialize<Setting>(configContent);
 
     //DNS records
-    public static string[] DomainNames = new string[]
-{
-    "www.outlook.com",
-    "www.test.com",
-    "www.sample.com",
-    "www.mywebsite.com",
-    "www.customdomain.com",
-    "example", // Faulty domain name
-    "Error", // Faulty domain name
-    "example.com",
-    "mail.example.com",
-     "{ 'Type': 'A', 'Value': 'www.example.com' }"
-};
+    public static (string Name, string Type)[] DomainNames = new (string, string)[]
+    {
+    ("www.outlook.com", "A"),
+    ("www.test.com", "A"),
+    ("www.sample.com", "A"),
+    ("www.mywebsite.com", "A"),
+    ("www.customdomain.com", "A"),
+    ("example", "A"), // Faulty domain name
+    ("Error", "A"), // Faulty domain name
+    ("example.com", "MX"),
+    ("mail.example.com", "A"),
+    ("www.example.com", "A") // Faulty domain type
+    };
 
     // Load DNS records
 
@@ -73,23 +73,31 @@ class ClientUDP
                 Content = "Hello from client"
             };
             SendMessage(socket, serverEndPoint, helloMsg);
+            Console.WriteLine($"{helloMsg.MsgId} SEND: {helloMsg.MsgType} {helloMsg.Content}");
 
             Message reply = ReceiveMessage(socket, ref serverEndPoint);
-            Console.WriteLine($"Received: {reply.Content}");
+            Console.WriteLine($"{reply.MsgId} RECEIVED: {reply.MsgType} {reply.Content}");
 
-            foreach (string name in DomainNames)
+            foreach (var (name, type) in DomainNames)
             {
+                var lookupContent = new Dictionary<string, string>
+                {
+                    { "DomainName", name },
+                    { "Type", type }
+                };
+
                 Message lookupMsg = new Message
                 {
                     MsgId = messageIdCounter++,
                     MsgType = MessageType.DNSLookup,
-                    Content = name
+                    Content = lookupContent
                 };
+
                 SendMessage(socket, serverEndPoint, lookupMsg);
-                Console.WriteLine($"Sent: {lookupMsg.Content}");
+                Console.WriteLine($"{lookupMsg.MsgId} SEND: {lookupMsg.MsgType} {lookupMsg.Content}");
 
                 Message response = ReceiveMessage(socket, ref serverEndPoint);
-                Console.WriteLine($"Received: {response.Content}");
+                Console.WriteLine($"{response.MsgId} RECEIVED: {response.MsgType} {response.Content}");
 
                 if (response.MsgType == MessageType.DNSLookupReply)
                 {
@@ -100,6 +108,7 @@ class ClientUDP
                         Content = response.MsgId
                     };
                     SendMessage(socket, serverEndPoint, Ack);
+                    Console.WriteLine($"{response.MsgId} SEND: {response.MsgType} {response.Content}");
                 }
                 if (response.MsgType == MessageType.Error)
                 {
@@ -110,6 +119,7 @@ class ClientUDP
                         Content = "Recieved records unsuccessfully"
                     };
                     SendMessage(socket, serverEndPoint, Ack);
+                    Console.WriteLine($"{response.MsgId} SEND: {response.MsgType} {response.Content}");
                 }
 
 
@@ -123,11 +133,13 @@ class ClientUDP
             };
 
             SendMessage(socket, serverEndPoint, ClientendAck);
+            Console.WriteLine($"{ClientendAck.MsgId} SEND: {ClientendAck.MsgType} {ClientendAck.Content}");
 
             // Wait for server to signal end of communication
             Message endMsg = ReceiveMessage(socket, ref serverEndPoint);
             if (endMsg.MsgType == MessageType.End)
             {
+                Console.WriteLine($"{endMsg.MsgId} RECEIVED: {endMsg.MsgType} {endMsg.Content}");
                 Console.WriteLine("Server has ended communication. Closing client.");
             }
         }

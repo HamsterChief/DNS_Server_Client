@@ -98,7 +98,7 @@ class ServerUDP
             while (CommunicationsActive)
             {
                 Message recieved = ReceiveMessage(socket, ref clientEndPoint);
-                Console.WriteLine($"Recieved {recieved.MsgType} from {clientEndPoint}");
+                Console.WriteLine($"{recieved.MsgId} RECEIVED {recieved.MsgType} from {clientEndPoint}");
 
                 // switch to give a diffrent response for each message type
                 switch (recieved.MsgType)
@@ -112,58 +112,77 @@ class ServerUDP
                             Content = $"Welcome from server"
                         };
                         SendMessage(socket, clientEndPoint, Welcome);
+                        Console.WriteLine($"{messageIdCounter}: SEND {recieved.MsgType} to {clientEndPoint}");
                         break;
 
                     case MessageType.DNSLookup:
                         {
-                            // Isolate the domain name from the message content
-                            string domainName = recieved.Content?.ToString() ?? string.Empty;
-                            if (!string.IsNullOrWhiteSpace(domainName))
+                            try
                             {
-                                // Find matching DNS records
-                                var matchedRecords = dNSRecords?.Where(r => r.Name.Equals(domainName, StringComparison.OrdinalIgnoreCase)).ToArray();
+                                var lookupContent = JsonSerializer.Deserialize<Dictionary<string, string>>(recieved.Content?.ToString() ?? "{}");
 
-                                if (matchedRecords != null && matchedRecords.Length > 0)
+                                if (lookupContent != null &&
+                                    lookupContent.TryGetValue("DomainName", out var domainName) &&
+                                    lookupContent.TryGetValue("Type", out var recordType) &&
+                                    !string.IsNullOrWhiteSpace(domainName) &&
+                                    !string.IsNullOrWhiteSpace(recordType))
                                 {
-                                    // Create DNS lookup reply message
-                                    Message dnsReply = new Message
+                                    var matchedRecords = dNSRecords?
+                                        .Where(r => r.Name.Equals(domainName, StringComparison.OrdinalIgnoreCase) &&
+                                                   r.Type.Equals(recordType, StringComparison.OrdinalIgnoreCase))
+                                        .ToArray();
+
+                                    if (matchedRecords != null && matchedRecords.Length > 0)
                                     {
-                                        MsgId = recieved.MsgId,
-                                        MsgType = MessageType.DNSLookupReply,
-                                        Content = matchedRecords
-                                    };
-                                    SendMessage(socket, clientEndPoint, dnsReply);
-                                    Console.WriteLine($"{recieved.MsgId}: Sent DNSLookupReply to {clientEndPoint} for {domainName}");
+                                        Message dnsReply = new Message
+                                        {
+                                            MsgId = recieved.MsgId,
+                                            MsgType = MessageType.DNSLookupReply,
+                                            Content = matchedRecords
+                                        };
+                                        SendMessage(socket, clientEndPoint, dnsReply);
+                                        Console.WriteLine($"{recieved.MsgId}: SEND DNSLookupReply for {domainName} (Type: {recordType})");
+                                    }
+                                    else
+                                    {
+                                        Message errorMsg = new Message
+                                        {
+                                            MsgId = recieved.MsgId,
+                                            MsgType = MessageType.Error,
+                                            Content = $"{recieved.MsgId}: No {recordType} record found for {domainName}"
+                                        };
+                                        SendMessage(socket, clientEndPoint, errorMsg);
+                                        Console.WriteLine($"{recieved.MsgId}: SEND No {recordType} record found for {domainName}");
+                                    }
                                 }
                                 else
                                 {
-                                    // Send an error message if no record found
+                                    // Send error for invalid format
                                     Message errorMsg = new Message
                                     {
                                         MsgId = recieved.MsgId,
                                         MsgType = MessageType.Error,
-                                        Content = "Domain not found"
+                                        Content = "Domain type or Name is not valid"
                                     };
                                     SendMessage(socket, clientEndPoint, errorMsg);
-                                    Console.WriteLine($"{recieved.MsgId}: No record found for {domainName}");
+                                    Console.WriteLine($"{recieved.MsgId}: SEND Domain type or Name is not valid");
                                 }
-
-                                Message ack = ReceiveMessage(socket, ref clientEndPoint); // Receive Ack from client
-                                Console.WriteLine($"{recieved.MsgId}: Response: {ack.Content} from {clientEndPoint}");
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                // Send an error message for invalid request format
                                 Message errorMsg = new Message
                                 {
                                     MsgId = recieved.MsgId,
                                     MsgType = MessageType.Error,
-                                    Content = "Domain not found"
+                                    Content = $"Invalid DNS lookup request: {ex.Message}"
                                 };
                                 SendMessage(socket, clientEndPoint, errorMsg);
-                                Console.WriteLine($"{recieved.MsgId}: Invalid DNS lookup request format");
-
+                                Console.WriteLine($"{recieved.MsgId}: SEND Invalid DNS lookup request: {ex.Message}");
                             }
+
+                            // Wait for ACK (your existing code)
+                            Message ack = ReceiveMessage(socket, ref clientEndPoint);
+                            Console.WriteLine($"{recieved.MsgId}: RECEIVED {recieved.MsgType}: {ack.Content}");
                             break;
                         }
                     case MessageType.End:
@@ -175,12 +194,12 @@ class ServerUDP
                             Content = "End of DNSLooku"
                         };
                         SendMessage(socket, clientEndPoint, End);
-                        Console.WriteLine($"{messageIdCounter}:Ending communication with {clientEndPoint}");
+                        Console.WriteLine($"{messageIdCounter}: RECIEVED {recieved.MsgType} Ending communication with {clientEndPoint}");
                         break;
 
                     // Unknown msg
                     default:
-                        Console.WriteLine($"Unknown message: {recieved.MsgType}");
+                        Console.WriteLine($"Recieved unknown message type: {recieved.MsgType}");
                         break;
                 }
 
