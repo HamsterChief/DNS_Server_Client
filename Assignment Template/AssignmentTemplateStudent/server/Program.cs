@@ -112,7 +112,7 @@ class ServerUDP
                             Content = $"Welcome from server"
                         };
                         SendMessage(socket, clientEndPoint, Welcome);
-                        Console.WriteLine($"{messageIdCounter}: SEND {recieved.MsgType} to {clientEndPoint}");
+                        Console.WriteLine($"{messageIdCounter}: SEND  {recieved.MsgType} to {clientEndPoint}");
                         break;
 
                     case MessageType.DNSLookup:

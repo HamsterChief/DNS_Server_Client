@@ -73,10 +73,10 @@ class ClientUDP
                 Content = "Hello from client"
             };
             SendMessage(socket, serverEndPoint, helloMsg);
-            Console.WriteLine($"{helloMsg.MsgId} SEND: {helloMsg.MsgType} {helloMsg.Content}");
+            Console.WriteLine($"{helloMsg.MsgId} SEND: TYPE: {helloMsg.MsgType} CONTENT: {helloMsg.Content}");
 
             Message reply = ReceiveMessage(socket, ref serverEndPoint);
-            Console.WriteLine($"{reply.MsgId} RECEIVED: {reply.MsgType} {reply.Content}");
+            Console.WriteLine($"{reply.MsgId} RECEIVED: TYPE: {reply.MsgType} CONTENT: {reply.Content}");
 
             foreach (var (name, type) in DomainNames)
             {
@@ -94,10 +94,10 @@ class ClientUDP
                 };
 
                 SendMessage(socket, serverEndPoint, lookupMsg);
-                Console.WriteLine($"{lookupMsg.MsgId} SEND: {lookupMsg.MsgType} {lookupMsg.Content}");
+                Console.WriteLine($"{lookupMsg.MsgId} SEND: {lookupMsg.MsgType} DOMAIN: {lookupContent["DomainName"]} TYPE: {lookupContent["Type"]}");
 
                 Message response = ReceiveMessage(socket, ref serverEndPoint);
-                Console.WriteLine($"{response.MsgId} RECEIVED: {response.MsgType} {response.Content}");
+                Console.WriteLine($"{response.MsgId} RECEIVED: TYPE: {response.MsgType} CONTENT: {response.Content}");
 
                 if (response.MsgType == MessageType.DNSLookupReply)
                 {
@@ -108,7 +108,7 @@ class ClientUDP
                         Content = response.MsgId
                     };
                     SendMessage(socket, serverEndPoint, Ack);
-                    Console.WriteLine($"{response.MsgId} SEND: {response.MsgType} {response.Content}");
+                    Console.WriteLine($"{response.MsgId} SEND: TYPE: {Ack.MsgType} CONTENT: {response.Content}");
                 }
                 if (response.MsgType == MessageType.Error)
                 {
@@ -119,7 +119,7 @@ class ClientUDP
                         Content = "Recieved records unsuccessfully"
                     };
                     SendMessage(socket, serverEndPoint, Ack);
-                    Console.WriteLine($"{response.MsgId} SEND: {response.MsgType} {response.Content}");
+                    Console.WriteLine($"{response.MsgId} SEND: TYPE: {Ack.MsgType} CONTENT: {response.Content}");
                 }
 
 
@@ -133,13 +133,13 @@ class ClientUDP
             };
 
             SendMessage(socket, serverEndPoint, ClientendAck);
-            Console.WriteLine($"{ClientendAck.MsgId} SEND: {ClientendAck.MsgType} {ClientendAck.Content}");
+            Console.WriteLine($"{ClientendAck.MsgId} SEND: TYPE: {ClientendAck.MsgType} CONTENT: {ClientendAck.Content}");
 
             // Wait for server to signal end of communication
             Message endMsg = ReceiveMessage(socket, ref serverEndPoint);
             if (endMsg.MsgType == MessageType.End)
             {
-                Console.WriteLine($"{endMsg.MsgId} RECEIVED: {endMsg.MsgType} {endMsg.Content}");
+                Console.WriteLine($"{endMsg.MsgId} RECEIVED: TYPE: {endMsg.MsgType} CONTENT: {endMsg.Content}");
                 Console.WriteLine("Server has ended communication. Closing client.");
             }
         }
